@@ -17,6 +17,7 @@
   --btn: #ebe6da;
   --btn-hover: #e0d9c9;
   --focus: #1f4e79;
+  --carriage: #c8553d;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -38,6 +39,7 @@
     --btn: #2f2d29;
     --btn-hover: #3a3833;
     --focus: #8fc1ec;
+    --carriage: #e07a5f;
   }
 }
 :root[data-theme="dark"] {
@@ -45,7 +47,7 @@
   --grid: #d8d3c7; --grid-thin: #4a4740; --rail: #ece8df; --sleeper: #c18b52;
   --cross: #7f7a70; --mark: #8fc1ec; --ok: #6fd39a; --ok-bg: #173a26;
   --bad: #ff8a80; --bad-bg: #4a1d1a; --accent: #d99acb; --btn: #2f2d29;
-  --btn-hover: #3a3833; --focus: #8fc1ec;
+  --btn-hover: #3a3833; --focus: #8fc1ec; --carriage: #e07a5f;
 }
 
 * { box-sizing: border-box; }
@@ -150,6 +152,26 @@ body {
 .sleeper { stroke: var(--sleeper); stroke-width: 7; }
 .mark-x { stroke: var(--cross); stroke-width: 7; stroke-linecap: round; }
 .mark-o { fill: none; stroke: var(--mark); stroke-width: 8; }
+.cell.dim .mark-x { opacity: 0.3; }
+.cell.laid svg { animation: lay 0.4s cubic-bezier(.2, .9, .3, 1.3) both; animation-delay: var(--d, 0ms); }
+@keyframes lay {
+  from { opacity: 0; transform: scale(0.4) rotate(-12deg); }
+  to   { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) { .cell.laid svg { animation: none; } }
+
+.train-layer { position: relative; pointer-events: none; z-index: 2; }
+.train-layer svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.train-layer .route { fill: none; stroke: none; }
+.car { opacity: 0; }
+.car .body { stroke: var(--ink); stroke-width: 3; }
+.engine .body { fill: var(--accent); }
+.engine .cab { fill: var(--ink); }
+.engine .chimney { fill: var(--ink); stroke: var(--sleeper); stroke-width: 3; }
+.engine .buffer { stroke: var(--ink); stroke-width: 5; stroke-linecap: round; }
+.carriage .body { fill: var(--carriage); }
+.carriage .roof { stroke: var(--card); stroke-width: 4; stroke-linecap: round; opacity: 0.8; }
+
 .reveal .rail { stroke: var(--mark); }
 .reveal .sleeper { stroke: var(--mark); opacity: 0.35; }
 
@@ -186,6 +208,10 @@ button:disabled { opacity: 0.45; cursor: default; }
 button.primary { background: var(--accent); color: var(--paper); border-color: var(--accent); min-width: 110px; }
 button.primary:hover { filter: brightness(1.08); }
 button.quiet { background: transparent; border-color: transparent; color: var(--ink-soft); font-weight: 400; }
+button.linkish {
+  background: none; border: none; padding: 0 2px; min-height: 0;
+  color: inherit; font: inherit; text-decoration: underline; cursor: pointer;
+}
 .controls.secondary { margin-top: 14px; }
 .select select { padding-right: 10px; }
 

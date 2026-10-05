@@ -26,6 +26,11 @@
   let cellEls = [], rowTotalEls = [], colTotalEls = [];
   let painting = null;     // { state, pointerId }
   let lastPointerType = "mouse";
+  let solved = false;       // board filled in and matches the solution
+  let layOrder = new Map(); // cell index -> position along the line (for the laying animation)
+  let layAnimate = false;
+  let trainTimer = 0, trainFrame = 0;
+  const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   // ---- storage (per-viewer convenience only) -----------------------------
   const store = {
@@ -74,6 +79,8 @@
     }
     undoStack = [];
     revealed = false;
+    solved = false;
+    stopTrain();
     rowStatus = new Array(p.rows).fill(null);
     colStatus = new Array(p.cols).fill(null);
     store.set("tt:last", p.id);
@@ -84,6 +91,7 @@
     buildBoard();
     setStatus("");
     updateButtons();
+    if (boardSolved()) celebrate(false);
   }
 
   function buildBoard() {
@@ -144,6 +152,14 @@
     frame.style.gridColumn = `2 / span ${C}`;
     board.appendChild(frame);
 
+    const layer = document.createElement("div");
+    layer.className = "train-layer";
+    layer.style.gridRow = frame.style.gridRow;
+    layer.style.gridColumn = frame.style.gridColumn;
+    layer.innerHTML = `<svg viewBox="0 0 ${C * 100} ${R * 100}" preserveAspectRatio="none" aria-hidden="true">` +
+      `<path class="route" d="${routePath(route())}"/>${TRAIN_CARS}</svg>`;
+    board.appendChild(layer);
+
     renderAll();
   }
 
@@ -163,6 +179,16 @@
     }
     el.classList.remove("reveal");
     const m = marks[i];
+    if (solved && m === CIRCLE) {
+      // Finished: the circles become real track, laid in order from A to B.
+      el.innerHTML = pieceSVG(P.solution[r - 1][c - 1]);
+      el.classList.toggle("laid", layAnimate);
+      el.style.setProperty("--d", (layOrder.get(i) || 0) * LAY_MS + "ms");
+      el.setAttribute("aria-label", `Row ${r}, column ${c}: track`);
+      return;
+    }
+    el.classList.remove("laid");
+    el.classList.toggle("dim", solved);
     el.innerHTML = m === CROSS ? CROSS_SVG : m === CIRCLE ? CIRCLE_SVG : "";
     el.setAttribute("aria-label",
       `Row ${r}, column ${c}: ${m === CROSS ? "no track" : m === CIRCLE ? "track" : "blank"}`);
@@ -253,7 +279,10 @@
   });
 
   const endPaint = (e) => {
-    if (painting && e.pointerId === painting.pointerId) painting = null;
+    if (painting && e.pointerId === painting.pointerId) {
+      painting = null;
+      afterEdit();
+    }
   };
   window.addEventListener("pointerup", endPaint);
   window.addEventListener("pointercancel", endPaint);
@@ -263,6 +292,7 @@
     const i = cellFromEvent(e);
     if (i < 0 || givens.has(i)) return;
     setMark(i, BLANK);
+    afterEdit();
   });
 
   board.addEventListener("keydown", (e) => {
@@ -293,8 +323,144 @@
       : null;
     if (state === null) return;
     e.preventDefault();
-    if (marks[i] !== state) { pushUndo(); setMark(i, state); }
+    if (marks[i] !== state) { pushUndo(); setMark(i, state); afterEdit(); }
   });
+
+  // ---- completion: lay the track and run the train -------------------------
+  const LAY_MS = 45;          // delay between laying successive pieces
+  const TRAIN_SPEED = 0.5;    // grid units (1 cell = 100) per millisecond
+  const CAR_GAPS = [0, 66, 128];
+  const STEP = { N: [0, -1], S: [0, 1], E: [1, 0], W: [-1, 0] };   // [dx, dy]
+  const OPP = { N: "S", S: "N", E: "W", W: "E" };
+
+  // Seen from above, facing +x, centred on the origin.
+  const TRAIN_CARS =
+    `<g class="car engine"><rect class="body" x="-30" y="-16" width="60" height="32" rx="8"/>` +
+    `<rect class="cab" x="-30" y="-16" width="20" height="32" rx="5"/>` +
+    `<circle class="chimney" cx="17" cy="0" r="7"/><line class="buffer" x1="31" y1="-11" x2="31" y2="11"/></g>` +
+    `<g class="car carriage"><rect class="body" x="-26" y="-14" width="52" height="28" rx="6"/>` +
+    `<line class="roof" x1="-18" y1="0" x2="18" y2="0"/></g>` +
+    `<g class="car carriage"><rect class="body" x="-26" y="-14" width="52" height="28" rx="6"/>` +
+    `<line class="roof" x1="-18" y1="0" x2="18" y2="0"/></g>`;
+
+  function boardSolved() {
+    if (revealed) return false;
+    for (let i = 0; i < marks.length; i++) {
+      if (givens.has(i)) continue;
+      if (marks[i] === BLANK) return false;
+      const r = Math.floor(i / P.cols), c = i % P.cols;
+      if ((marks[i] === CIRCLE) !== Boolean(P.solution[r][c])) return false;
+    }
+    return true;
+  }
+
+  /** The solution as a walk from A to B: [{i, r, c, entry, exit}]. */
+  function route() {
+    const steps = [];
+    let r = P.start.row, c = P.start.col, entry = P.start.side;
+    for (let n = 0; n < P.rows * P.cols; n++) {
+      const exit = P.solution[r][c].replace(entry, "");
+      steps.push({ i: idx(r, c), r, c, entry, exit });
+      if (r === P.end.row && c === P.end.col && exit === P.end.side) break;
+      c += STEP[exit][0];
+      r += STEP[exit][1];
+      entry = OPP[exit];
+    }
+    return steps;
+  }
+
+  /** SVG path along the middle of the track, starting and ending just outside the grid. */
+  function routePath(steps) {
+    const mid = (s, side) => [s.c * 100 + 50 + STEP[side][0] * 50, s.r * 100 + 50 + STEP[side][1] * 50];
+    const first = steps[0], last = steps[steps.length - 1];
+    const [sx, sy] = mid(first, first.entry);
+    let d = `M ${sx + STEP[first.entry][0] * 70} ${sy + STEP[first.entry][1] * 70} L ${sx} ${sy}`;
+    for (const s of steps) {
+      const [x, y] = mid(s, s.exit);
+      if (s.entry === OPP[s.exit]) {
+        d += ` L ${x} ${y}`;
+      } else {
+        const din = STEP[OPP[s.entry]], dout = STEP[s.exit];
+        const sweep = din[0] * dout[1] - din[1] * dout[0] > 0 ? 1 : 0;
+        d += ` A 50 50 0 0 ${sweep} ${x} ${y}`;
+      }
+    }
+    const [ex, ey] = mid(last, last.exit);
+    return d + ` L ${ex + STEP[last.exit][0] * 70} ${ey + STEP[last.exit][1] * 70}`;
+  }
+
+  /** Called after each finished edit: start or undo the celebration. */
+  function afterEdit() {
+    const now = boardSolved();
+    if (now && !solved) {
+      celebrate(true);
+    } else if (!now && solved) {
+      solved = false;
+      stopTrain();
+      rowStatus.fill(null);
+      colStatus.fill(null);
+      renderAll();
+      setStatus("");
+    }
+  }
+
+  function celebrate(animate) {
+    solved = true;
+    stopTrain();
+    const steps = route();
+    layOrder = new Map(steps.map((s, k) => [s.i, k]));
+    layAnimate = animate && !reduceMotion;
+    rowStatus.fill("ok");
+    colStatus.fill("ok");
+    renderAll();
+    statusEl.className = "status ok";
+    statusEl.textContent = "Solved! All aboard from A to B. ";
+    const again = document.createElement("button");
+    again.type = "button";
+    again.className = "linkish";
+    again.textContent = "Run the train again";
+    again.addEventListener("click", runTrain);
+    statusEl.appendChild(again);
+    if (animate && !reduceMotion) {
+      trainTimer = setTimeout(runTrain, steps.length * LAY_MS + 350);
+    }
+  }
+
+  function stopTrain() {
+    clearTimeout(trainTimer);
+    cancelAnimationFrame(trainFrame);
+    board.querySelectorAll(".train-layer .car").forEach((car) => { car.style.opacity = "0"; });
+  }
+
+  function runTrain() {
+    stopTrain();
+    const path = board.querySelector(".train-layer .route");
+    if (!path) return;
+    const cars = [...board.querySelectorAll(".train-layer .car")];
+    const L = path.getTotalLength();
+    const travel = L + CAR_GAPS[CAR_GAPS.length - 1];
+    const duration = travel / TRAIN_SPEED;
+    const ease = (t) => (1 - Math.cos(Math.PI * t)) / 2;
+    let t0 = null;
+
+    const frame = (now) => {
+      if (t0 === null) t0 = now;
+      const t = Math.min(1, (now - t0) / duration);
+      const s = ease(t) * travel;
+      cars.forEach((car, k) => {
+        const at = s - CAR_GAPS[k];
+        if (at < 0 || at > L) { car.style.opacity = "0"; return; }
+        const p = path.getPointAtLength(at);
+        const a = path.getPointAtLength(Math.max(0, at - 2));
+        const b = path.getPointAtLength(Math.min(L, at + 2));
+        const deg = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
+        car.setAttribute("transform", `translate(${p.x} ${p.y}) rotate(${deg})`);
+        car.style.opacity = "1";
+      });
+      if (t < 1) trainFrame = requestAnimationFrame(frame);
+    };
+    trainFrame = requestAnimationFrame(frame);
+  }
 
   // ---- check -------------------------------------------------------------
   function check() {
@@ -317,6 +483,10 @@
     }
     renderTotals();
 
+    if (boardSolved()) {
+      celebrate(!solved);
+      return;
+    }
     if (complete === 0) {
       setStatus("Nothing to check yet: fill in a whole row or column first.");
     } else if (complete === R + C && right === complete) {
@@ -348,12 +518,15 @@
     save();
     setStatus("");
     updateButtons();
+    afterEdit();
   });
 
   $("btn-reset").addEventListener("click", () => {
     if (marks.every((m) => m === BLANK)) return;
     pushUndo();
     marks.fill(BLANK);
+    solved = false;
+    stopTrain();
     rowStatus.fill(null);
     colStatus.fill(null);
     renderAll();
@@ -363,6 +536,7 @@
 
   $("btn-reveal").addEventListener("click", () => {
     revealed = !revealed;
+    stopTrain();
     renderAll();
     updateButtons();
     setStatus(revealed ? "Showing the solution. Your marks are kept for when you hide it." : "");

@@ -72,6 +72,7 @@ python -m http.server 8000 --directory web
 - **Touch:** tap once ✕, twice ○, three times to clear; drag to mark several the same way.
 - **Keyboard:** arrow keys, X, O, Delete.
 - **Check** colours each *completed* row and column total green (matches) or red (doesn't). Nothing is checked until you ask.
+- When the last square is filled in and the board is right, the circles turn into track, laid piece by piece from A to B, and a train runs along it. A finished but wrong board isn't flagged until you press **Check**.
 - **Undo**, **Reset** (undoable), **New puzzle** by difficulty, and **Show solution**.
 - Progress is saved in the browser; the URL (`#g42`) links to a specific puzzle.
 
