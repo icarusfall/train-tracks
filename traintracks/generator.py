@@ -104,11 +104,12 @@ class Generated:
 
 def generate(rows: int = 8, cols: int = 8, *, min_len: int = 22, max_len: int = 36,
              min_extra_givens: int = 1, max_extra_givens: int = 3,
-             difficulty: str | None = None,
-             seed: int | None = None, max_attempts: int = 500) -> Generated:
+             difficulty: str | None = None, allow_empty_lines: bool = False,
+             seed: int | None = None, max_attempts: int = 2000) -> Generated:
     """Generate a puzzle with exactly one solution that can be solved by
     deduction (see logic.py). `difficulty` is None for any, or one of
-    'easy', 'medium', 'hard'."""
+    'easy', 'medium', 'hard'. Unless `allow_empty_lines`, every row and
+    column has at least one piece of track (no totals of 0)."""
     rng = random.Random(seed)
     lo, hi = DIFFICULTIES[difficulty] if difficulty else (0, 10**9)
     for _ in range(max_attempts):
@@ -121,6 +122,8 @@ def generate(rows: int = 8, cols: int = 8, *, min_len: int = 22, max_len: int = 
         truth = line_pieces(cells, s_side, e_side)
         row_totals = [sum(1 for r, _ in cells if r == i) for i in range(rows)]
         col_totals = [sum(1 for _, c in cells if c == i) for i in range(cols)]
+        if not allow_empty_lines and (0 in row_totals or 0 in col_totals):
+            continue
         start = Terminal(cells[0][0], cells[0][1], s_side)
         end = Terminal(cells[-1][0], cells[-1][1], e_side)
         fixed = {cells[0]: truth[cells[0]], cells[-1]: truth[cells[-1]]}

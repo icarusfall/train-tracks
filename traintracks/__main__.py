@@ -55,7 +55,8 @@ def cmd_generate(args) -> int:
         seed = args.seed + i
         diff = args.difficulty or ("easy", "medium", "hard")[i % 3]
         g = generate(args.rows, args.cols, min_len=args.min_len, max_len=args.max_len,
-                     max_extra_givens=args.max_hints, difficulty=diff, seed=seed)
+                     max_extra_givens=args.max_hints, difficulty=diff,
+                     allow_empty_lines=args.allow_empty, seed=seed)
         p = g.puzzle
         p.name = f"Puzzle {seed}"
         out.append(puzzle_record(p, g.solution, f"g{seed}"))
@@ -94,6 +95,8 @@ def main(argv=None) -> int:
     g.add_argument("--cols", type=int, default=8)
     g.add_argument("--min-len", type=int, default=22)
     g.add_argument("--max-len", type=int, default=36)
+    g.add_argument("--allow-empty", action="store_true",
+                   help="allow rows/columns with a total of 0")
     g.add_argument("--max-hints", type=int, default=3, help="max hints beyond the villages")
     g.add_argument("--difficulty", choices=["easy", "medium", "hard"],
                    help="default: cycle through easy, medium, hard")

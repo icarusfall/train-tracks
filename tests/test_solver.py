@@ -97,6 +97,7 @@ class TestGenerator(unittest.TestCase):
             self.assertTrue(res.unique, f"seed {seed}")
             self.assertEqual(res.solutions[0], truth)
             check_solution(self, p, truth)
+            self.assertNotIn(0, p.row_totals + p.col_totals)
 
 
 if __name__ == "__main__":
