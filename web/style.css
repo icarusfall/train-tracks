@@ -1,0 +1,203 @@
+:root {
+  --paper: #f6f3ec;
+  --card: #fffdf8;
+  --ink: #1c1b19;
+  --ink-soft: #5d5a53;
+  --grid: #2a2926;
+  --grid-thin: #b9b4a8;
+  --rail: #1c1b19;
+  --sleeper: #a8743f;
+  --cross: #8a857a;
+  --mark: #1f4e79;
+  --ok: #1e7b45;
+  --ok-bg: #d9f0e1;
+  --bad: #b3261e;
+  --bad-bg: #f9dedc;
+  --accent: #6b2d5c;
+  --btn: #ebe6da;
+  --btn-hover: #e0d9c9;
+  --focus: #1f4e79;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #1a1917;
+    --card: #23221f;
+    --ink: #ece8df;
+    --ink-soft: #a8a398;
+    --grid: #d8d3c7;
+    --grid-thin: #4a4740;
+    --rail: #ece8df;
+    --sleeper: #c18b52;
+    --cross: #7f7a70;
+    --mark: #8fc1ec;
+    --ok: #6fd39a;
+    --ok-bg: #173a26;
+    --bad: #ff8a80;
+    --bad-bg: #4a1d1a;
+    --accent: #d99acb;
+    --btn: #2f2d29;
+    --btn-hover: #3a3833;
+    --focus: #8fc1ec;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #1a1917; --card: #23221f; --ink: #ece8df; --ink-soft: #a8a398;
+  --grid: #d8d3c7; --grid-thin: #4a4740; --rail: #ece8df; --sleeper: #c18b52;
+  --cross: #7f7a70; --mark: #8fc1ec; --ok: #6fd39a; --ok-bg: #173a26;
+  --bad: #ff8a80; --bad-bg: #4a1d1a; --accent: #d99acb; --btn: #2f2d29;
+  --btn-hover: #3a3833; --focus: #8fc1ec;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "Source Serif 4", Georgia, serif;
+  line-height: 1.45;
+}
+
+.app {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 16px 16px 40px;
+  padding-left: max(16px, env(safe-area-inset-left));
+  padding-right: max(16px, env(safe-area-inset-right));
+}
+
+.masthead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  border-bottom: 3px double var(--ink);
+  padding-bottom: 6px;
+  margin-bottom: 14px;
+}
+.masthead h1 {
+  font-family: "Libre Franklin", system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 1.7rem;
+  letter-spacing: -0.02em;
+  margin: 0;
+  color: var(--accent);
+}
+.meta { display: flex; gap: 8px; align-items: baseline; color: var(--ink-soft); font-size: 0.95rem; }
+.badge {
+  font-family: "Libre Franklin", system-ui, sans-serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 8px;
+  border-radius: 99px;
+  border: 1px solid currentColor;
+}
+.badge:empty { display: none; }
+
+/* ---- board ------------------------------------------------------------ */
+.board-wrap { display: flex; justify-content: center; }
+.board {
+  --n: 8;
+  --m: 8;
+  display: grid;
+  width: min(100%, 72vh);
+  font-family: "Libre Franklin", system-ui, sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: none;
+}
+.slot { display: flex; align-items: center; justify-content: center; }
+.total {
+  font-weight: 600;
+  font-size: clamp(0.95rem, 4.2vw, 1.35rem);
+  border-radius: 6px;
+  margin: 2px;
+  transition: background-color 0.15s, color 0.15s;
+}
+.total.ok { background: var(--ok-bg); color: var(--ok); }
+.total.bad { background: var(--bad-bg); color: var(--bad); }
+.terminal {
+  font-weight: 800;
+  font-size: clamp(0.85rem, 3.6vw, 1.2rem);
+  color: var(--ink);
+}
+
+.frame {
+  border: 2.5px solid var(--grid);
+  pointer-events: none;
+  z-index: 1;
+}
+.cell {
+  position: relative;
+  aspect-ratio: 1;
+  border-right: 1px solid var(--grid-thin);
+  border-bottom: 1px solid var(--grid-thin);
+  background: var(--card);
+  cursor: pointer;
+  outline: none;
+}
+.cell.last-col { border-right: none; }
+.cell.last-row { border-bottom: none; }
+.cell.given { cursor: default; }
+.cell:focus-visible { box-shadow: inset 0 0 0 3px var(--focus); }
+.cell svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+
+.rail { fill: none; stroke: var(--rail); stroke-width: 7; stroke-linecap: butt; }
+.sleeper { stroke: var(--sleeper); stroke-width: 7; }
+.mark-x { stroke: var(--cross); stroke-width: 7; stroke-linecap: round; }
+.mark-o { fill: none; stroke: var(--mark); stroke-width: 8; }
+.reveal .rail { stroke: var(--mark); }
+.reveal .sleeper { stroke: var(--mark); opacity: 0.35; }
+
+/* ---- status & controls ------------------------------------------------ */
+.status {
+  min-height: 1.5em;
+  text-align: center;
+  margin: 12px 0 4px;
+  font-size: 1rem;
+}
+.status.ok { color: var(--ok); font-weight: 600; }
+.status.bad { color: var(--bad); }
+
+.controls {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+button, select {
+  font: 600 1rem "Libre Franklin", system-ui, sans-serif;
+  color: var(--ink);
+  background: var(--btn);
+  border: 1px solid var(--grid-thin);
+  border-radius: 10px;
+  padding: 10px 16px;
+  min-height: 44px;
+  cursor: pointer;
+}
+button:hover, select:hover { background: var(--btn-hover); }
+button:focus-visible, select:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+button:disabled { opacity: 0.45; cursor: default; }
+button.primary { background: var(--accent); color: var(--paper); border-color: var(--accent); min-width: 110px; }
+button.primary:hover { filter: brightness(1.08); }
+button.quiet { background: transparent; border-color: transparent; color: var(--ink-soft); font-weight: 400; }
+.controls.secondary { margin-top: 14px; }
+.select select { padding-right: 10px; }
+
+.help {
+  margin-top: 26px;
+  padding-top: 12px;
+  border-top: 1px solid var(--grid-thin);
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+}
+.help p { margin: 0 0 8px; }
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap;
+}

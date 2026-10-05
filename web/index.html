@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Train Tracks</title>
+  <meta name="description" content="Train Tracks logic puzzles: lay track from village A to village B.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;600;800&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="app">
+    <header class="masthead">
+      <h1>Train Tracks</h1>
+      <div class="meta">
+        <span id="puzzle-name"></span>
+        <span id="puzzle-difficulty" class="badge"></span>
+      </div>
+    </header>
+
+    <section class="board-wrap" aria-label="Puzzle grid">
+      <div id="board" class="board"></div>
+    </section>
+
+    <p id="status" class="status" role="status" aria-live="polite"></p>
+
+    <nav class="controls" aria-label="Puzzle controls">
+      <button id="btn-check" class="primary" type="button">Check</button>
+      <button id="btn-undo" type="button">Undo</button>
+      <button id="btn-reset" type="button">Reset</button>
+    </nav>
+
+    <nav class="controls secondary" aria-label="Choose puzzle">
+      <label class="select">
+        <span class="visually-hidden">Difficulty</span>
+        <select id="sel-difficulty">
+          <option value="any">Any difficulty</option>
+          <option value="easy">Easy</option>
+          <option value="medium">Medium</option>
+          <option value="hard">Hard</option>
+        </select>
+      </label>
+      <button id="btn-new" type="button">New puzzle</button>
+      <button id="btn-reveal" class="quiet" type="button">Show solution</button>
+    </nav>
+
+    <section class="help">
+      <p>Lay track so the train runs from village <b>A</b> to village <b>B</b>.
+        The numbers say how many cells in each row and column hold track.
+        The track is one unbroken line of straight and curved pieces that never crosses itself.</p>
+      <p id="help-input"></p>
+    </section>
+  </main>
+
+  <script src="puzzles.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

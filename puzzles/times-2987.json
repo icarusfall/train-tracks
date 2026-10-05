@@ -1,0 +1,15 @@
+{
+  "name": "The Times Train Tracks No 2987",
+  "rows": 8,
+  "cols": 8,
+  "row_totals": [7, 7, 3, 3, 2, 2, 3, 2],
+  "col_totals": [5, 6, 2, 2, 7, 3, 2, 2],
+  "start": {"row": 7, "col": 0, "side": "W"},
+  "end": {"row": 7, "col": 4, "side": "S"},
+  "givens": [
+    {"row": 0, "col": 6, "piece": "EW"},
+    {"row": 1, "col": 1, "piece": "NW"},
+    {"row": 7, "col": 0, "piece": "NW"},
+    {"row": 7, "col": 4, "piece": "NS"}
+  ]
+}
